@@ -1,0 +1,21 @@
+{
+  "name": "big-boss-house",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Multiplayer 2D open-world Bigg Boss house (Kerala Season 8 inspired) web game with proximity chat",
+  "scripts": {
+    "server": "node server.js",
+    "dev": "concurrently -n server,client -c blue,green \"node --watch server.js\" \"npm --prefix client run dev\"",
+    "build": "npm --prefix client run build",
+    "start": "node server.js",
+    "install:all": "npm install && npm --prefix client install"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
