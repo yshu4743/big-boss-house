@@ -735,6 +735,17 @@ html, body, #root {
     backdrop-filter: blur(6px);
   }
   .act-btn:active { transform: scale(0.92); }
+  .act-btn.mic {
+    border-color: #ff4d4d;
+    background: rgba(255, 77, 77, 0.18);
+    color: #ffb3b3;
+  }
+  .act-btn.mic:active,
+  .act-btn.mic.pressed {
+    background: rgba(255, 77, 77, 0.55);
+    color: #fff;
+    box-shadow: 0 0 22px rgba(255, 77, 77, 0.7);
+  }
 }
 
 @media (max-width: 480px) {

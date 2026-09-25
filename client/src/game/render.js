@@ -865,7 +865,7 @@ export function drawWorld(ctx, S) {
 
   // ----- players & bubbles -----
   const list = [...S.players.values()].sort((a, b) => a.y - b.y);
-  for (const p of list) drawPlayer(ctx, p, p.id === S.meId, S.time);
+  for (const p of list) drawPlayer(ctx, p, p.id === S.meId, S.time, S.speaking?.has(p.id));
 
   // ----- task props (on top, small, non-blocking) -----
   if (S.choreSpots) {
@@ -947,7 +947,7 @@ function drawCookPot(ctx, it, time) {
   ctx.globalAlpha = 1;
 }
 
-function drawPlayer(ctx, p, isMe, time) {
+function drawPlayer(ctx, p, isMe, time, speaking) {
   const bob = p.moving ? Math.sin(p.anim * 0.5) * 2 : 0;
   const x = p.x, y = p.y + bob;
 
@@ -1001,6 +1001,15 @@ function drawPlayer(ctx, p, isMe, time) {
   rr(ctx, x - w / 2, y - 52, w, 16, 4); ctx.fill();
   ctx.fillStyle = p.color;
   ctx.fillText(label, x - w / 2 + 5, y - 40);
+
+  // live voice indicator
+  if (speaking) {
+    const pulse = (Math.sin(time * 0.008 + p.id.length) * 0.5 + 0.5);
+    ctx.fillStyle = '#ff4d4d';
+    ctx.beginPath(); ctx.arc(x, y - 63, 3 + pulse * 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,77,77,0.35)';
+    ctx.beginPath(); ctx.arc(x, y - 63, 6 + pulse * 3, 0, Math.PI * 2); ctx.fill();
+  }
 }
 
 function wrapText(ctx, text, maxW) {

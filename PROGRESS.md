@@ -64,3 +64,25 @@ User asked: responsive for mobile, on-screen controls, and to TEST WASD in the k
 ## Memory/tooling notes
 - ~2.7GB total RAM, often 25–50MB free; headless chrome can be OOM-killed. Prefer raw-socket tests.
 - `setsid` wedges the bash output pipe unless its stdout is also redirected to a file.
+
+## Stove flames (DONE 25 Sep)
+User asked: stove flamed when the kitchen act appears, off when over.
+- `render.js`: `STOVE_BURNERS` anchors derived from the north counter furniture; `drawStoveFlames()` = 3 flickering additive-gradient flames (time-based) drawn right after the static canvas, only when `S.stoveLit`.
+- `engine.js`: `bbCook` flag (public) → `stoveLit` in draw opts.
+- `Game.jsx` `onBB`: `t==='cook'` → flame on; `t==='reveal'` → off; `t==='syn'` → `phase==='cook_open'`. Cook act = burner stage; reveal kills the flame.
+
+## Voice chat (DONE 25 Sep)
+User asked to add real voice chat; chosen: **hold-to-talk + proximity only** (CHAT_RADIUS=320).
+- `client/src/game/voice.js` (new): `VoiceManager` — WebRTC mesh (peer cap 16 nearest, `stun.l.google.com` STUN, no TURN), lazy `getUserMedia` on first hold (AudioContext resumed inside the gesture), local track enabled only while holding, per-peer distance GainNode (`1-(d/RANGE)^2`, smooth `setTargetAtTime`), offer/answer/ICE over Socket.IO, speaking-set tracking. `sync(players, mePos)` called from Game's `onPlayers`.
+- Server relays (server.js): `v_sig` (gated on target socket existing — NOT logged-in status, or offers race), `v_on`, `v_off` → broadcast `{id}`.
+- `engine.js`: `speaking` Set (+ `v_on`/`v_off` handlers), `voice` ref, `setHolding()`, and `v`/`V` hold-to-talk in `_bindInput`.
+- `Game.jsx`: creates `VoiceManager`, `onHold` adds/removes self in engine.speaking (own mic indicator), hint text updated.
+- `MobileControls.jsx`: 🎙 hold-to-talk button (pointerdown/up/cancel/leave + contextmenu guard) → `engine.setHolding`.
+- `render.js` `drawPlayer`: pulsing red "live" dot above anyone currently holding to talk.
+- `index.css`: `.act-btn.mic` red styling + pressed glow.
+- Verified: build `dist/assets/index-DcgntIHO.js` (client) + `index-BvPqN7RW.css`; server :3900 restarted; `/tmp/opencode/pw/voice-relay.mjs` → **VOICE RELAY OK** (v_sig offer relayed, v_on, v_off); `conductor.mjs` → **CONDUCTOR: ALL CHECKS PASSED** (order/group, chore, cook, game all green). Note: `voice-relay.mjs` expects the server to relay `v_sig` even to a not-yet-logged-in socket — that guard was relaxed deliberately.
+- Caveat: no TURN server, so some symmetric-NAT users won't reach each other; works on most home/office NATs and same-network.
+
+## GitHub / Render (DONE 25 Sep)
+- Repo created & pushed: `https://github.com/yshu4743/big-boss-house` (branch `master`, commit `055225c`). `.gitignore` excludes `node_modules/`, `client/dist/`, `*.log`.
+- Render = **ONE Web Service** (server.js serves `client/dist` + API + Socket.IO). Build cmd: `npm ci && npm --prefix client ci && npm run build`; start: `node server.js`; PORT auto-set by Render; client uses `['websocket','polling']` so it works through Render's proxy. No multicast/state persistence (in-memory; resets per restart). Firebase free can't host the backend (serverless, no persistent WebSockets/interval loop).

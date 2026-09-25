@@ -28,6 +28,8 @@ export class GameEngine {
     this.cookItems = null;
     this.choreSpots = null;
     this.bbCook = false;            // stove lit while the cook act runs
+    this.speaking = new Set();      // housemates currently holding-to-talk
+    this.voice = null;              // VoiceManager (voice chat)
     this.interact = null;   // 'cook' | 'chore' | null
     this.carried = [];
     this.disposed = false;
@@ -92,6 +94,8 @@ export class GameEngine {
       this.callbacks.onCooldown?.(ms);
     });
     s.on('bb', (ev) => this._onBB(ev));
+    s.on('v_on', ({ id }) => this.speaking.add(id));
+    s.on('v_off', ({ id }) => this.speaking.delete(id));
     s.on('player_left', ({ id }) => {
       this.players.delete(id);
       this.callbacks.onPlayers?.([...this.players.values()]);
@@ -163,13 +167,17 @@ export class GameEngine {
       if (!typing) {
         if (e.key === 'e' || e.key === 'E') this._interact();
         if (e.key === 'r' || e.key === 'R') this.socket.emit('cook_drop');
+        if (e.key === 'v' || e.key === 'V') this.setHolding(true);
       }
       const k = e.key.toLowerCase();
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
       this.keys.add(k);
       if (k === ' ' || k === 'enter') e.preventDefault();
     };
-    this._onKeyUp = (e) => this.keys.delete(e.key.toLowerCase());
+    this._onKeyUp = (e) => {
+      if (e.key.toLowerCase() === 'v') this.setHolding(false);
+      this.keys.delete(e.key.toLowerCase());
+    };
     this._onBlur = () => this.keys.clear();
     window.addEventListener('keydown', this._onKeyDown);
     window.addEventListener('keyup', this._onKeyUp);
@@ -313,6 +321,7 @@ export class GameEngine {
       cookItems: this.cookItems,
       choreSpots: this.choreSpots,
       stoveLit: this.bbCook,
+      speaking: this.speaking,
     });
 
     // post-processing: warm light + vignette
@@ -349,6 +358,10 @@ export class GameEngine {
 
   act() {
     this._interact();
+  }
+
+  setHolding(on) {
+    this.voice?.setHolding(on);
   }
 
   drop() {

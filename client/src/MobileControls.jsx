@@ -37,6 +37,12 @@ export function MobileControls({ engineRef }) {
     setVec(0, 0);
   };
 
+  const mic = (on) => (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    engineRef.current?.setHolding(on);
+  };
+
   return (
     <div className="mobile-controls">
       <div
@@ -52,6 +58,19 @@ export function MobileControls({ engineRef }) {
         <div ref={thumbRef} className="joy-thumb" />
       </div>
       <div className="act-pad">
+        <button
+          type="button"
+          className="act-btn mic"
+          onPointerDown={mic(true)}
+          onPointerUp={mic(false)}
+          onPointerCancel={mic(false)}
+          onPointerLeave={mic(false)}
+          onContextMenu={(e) => e.preventDefault()}
+          aria-label="Hold to talk"
+          title="Hold to talk — only nearby housemates hear you"
+        >
+          🎙
+        </button>
         <button
           type="button"
           className="act-btn act"

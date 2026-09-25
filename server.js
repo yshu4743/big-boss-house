@@ -766,6 +766,26 @@ io.on('connection', (socket) => {
     socket.emit('bb', syncPayload());
   });
 
+  // -------------------------- VOICE CHAT RELAY ---------------------------
+  // WebRTC media flows peer-to-peer between browsers; the server only
+  // relays offer/answer/ICE signalling and hold-to-talk on/off state.
+  socket.on('v_sig', ({ to, data } = {}) => {
+    if (!socket.player || !to || !data || typeof to !== 'string') return;
+    if (data.sdp && typeof data.sdp !== 'object') return;
+    if (data.ice && typeof data.ice !== 'object') return;
+    const target = io.sockets.sockets.get(to);   // relay to whoever is connected
+    if (!target) return;
+    target.emit('v_sig', { from: socket.id, data });
+  });
+  socket.on('v_on', () => {
+    if (!socket.player) return;
+    io.emit('v_on', { id: socket.id });
+  });
+  socket.on('v_off', () => {
+    if (!socket.player) return;
+    io.emit('v_off', { id: socket.id });
+  });
+
   // ----------------------------- DISCONNECT ------------------------------
   socket.on('disconnect', () => {
     const p = players.get(socket.id);

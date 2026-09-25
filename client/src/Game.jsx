@@ -4,12 +4,14 @@ import { playChatOpen, soundState } from './game/sound.js';
 import { CHAT_RADIUS } from '../../shared/config.js';
 import { BiggBossDesk } from './Quiz.jsx';
 import { MobileControls } from './MobileControls.jsx';
+import { VoiceManager } from './game/voice.js';
 
 const LOG_LIMIT = 40;
 
 export function Game({ socket, me, onLeave }) {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
+  const voiceRef = useRef(null);
   const chatInputRef = useRef(null);
   const [players, setPlayers] = useState([]);
   const [log, setLog] = useState([]);
@@ -30,7 +32,12 @@ export function Game({ socket, me, onLeave }) {
 
   useEffect(() => {
     const engine = new GameEngine(canvasRef.current, socket, me, {
-      onPlayers: (list) => { setPlayers(list); setOnline(list.length); },
+      onPlayers: (list) => {
+        setPlayers(list);
+        setOnline(list.length);
+        const eng = engineRef.current;
+        voiceRef.current?.sync(list, eng?.me);
+      },
       onChat: (payload) => {
         setLog((prev) => [...prev.slice(-LOG_LIMIT), payload]);
       },
@@ -55,7 +62,21 @@ export function Game({ socket, me, onLeave }) {
       },
     });
     engineRef.current = engine;
-    return () => engine.dispose();
+
+    const voice = new VoiceManager(socket, me, {
+      onHold: (on) => {
+        const eng = engineRef.current;
+        if (!eng) return;
+        if (on) eng.speaking.add(me.id); else eng.speaking.delete(me.id);
+      },
+    });
+    voiceRef.current = voice;
+    engine.voice = voice;
+
+    return () => {
+      voice.dispose();
+      engine.dispose();
+    };
   }, [socket, me]);
 
   useEffect(() => {
@@ -74,7 +95,7 @@ export function Game({ socket, me, onLeave }) {
   };
 
   const hint = useMemo(
-    () => 'WASD / Arrow keys to move · Enter to talk · E to act · R to drop',
+    () => 'WASD / Arrows to move · Enter to talk · E to act · R to drop · hold V (or 🎙) to speak',
     []
   );
 
@@ -204,7 +225,7 @@ export function Game({ socket, me, onLeave }) {
       {/* Controls hint */}
       {!log.length && (
         <div className="hint-banner">
-          {hint} — voice bubbles appear over housemates who are close enough to talk.
+          {hint} — you can only be heard by housemates standing close to you.
         </div>
       )}
 
